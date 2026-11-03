@@ -257,6 +257,12 @@ h1,h2,p{margin:0}
       <div id="chips"></div>
     </div>
     <details id="savedBox" class="hidden"><summary id="savedSum"></summary><div id="savedList"></div></details>
+    <div class="row hidden" id="backupRow">
+      <button class="btn small" id="exportBtn" type="button">Exporter mes phrases</button>
+      <button class="btn small" id="importBtn" type="button">Importer des phrases</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+      <span class="muted" id="backupMsg"></span>
+    </div>
     <div class="row hidden" id="delRow">
       <button class="btn small" id="delSaved" type="button">Supprimer cette phrase de « Mes phrases »</button>
     </div>
@@ -502,6 +508,7 @@ let editIdx = -1;
 function renderSaved(){
   const w = kind() === 'words', list = w ? savedW : saved;
   $('#savedBox').classList.toggle('hidden', !list.length || srcOrigin() !== 'mine');
+  $('#backupRow').classList.toggle('hidden', srcOrigin() !== 'mine');
   $('#savedSum').textContent = (w ? 'Mes listes de mots' : 'Mes phrases') + ' (' + list.length + ') : modifier ou supprimer';
   $('#savedList').innerHTML = list.map((t,i) => `<div class="srow"><span>${esc(w ? t.tokens.map(x => x.t).join(', ') : plain(t.tokens))}</span><button class="btn small" type="button" data-edit="${i}">Modifier</button> <button class="btn small" type="button" data-del="${i}">Supprimer</button></div>`).join('');
   document.querySelectorAll('#savedList [data-edit]').forEach(b => b.addEventListener('click', () => {
@@ -559,6 +566,73 @@ document.querySelectorAll('[name=kind]').forEach(r => r.addEventListener('change
   buildSrc('rand');
 }));
 document.querySelectorAll('[name=origin]').forEach(r => r.addEventListener('change', () => buildSrc(srcOrigin() === 'mine' ? 'srand' : 'rand')));
+
+/* ============================================================
+   Sauvegarde de « Mes phrases » et « Mes listes de mots »
+   Exporter : crée un fichier .json (à garder sur une clé USB, à donner à un collègue…).
+   Importer : ajoute les phrases d'un tel fichier à celles déjà enregistrées (sans doublons).
+   ============================================================ */
+const BACKUP_APP = 'gym-des-mots';
+
+/* Une phrase valide = une liste de mots, chacun avec son texte (t) et sa nature (n) */
+function validItem(x){
+  return x && Array.isArray(x.tokens) && x.tokens.length > 0
+    && x.tokens.every(k => k && typeof k.t === 'string' && typeof k.n === 'string');
+}
+/* Clé de comparaison pour repérer les doublons (même texte et mêmes natures) */
+const itemKey = x => JSON.stringify(x.tokens.map(k => [k.t, k.n]));
+
+function exportPhrases(){
+  const data = { app: BACKUP_APP, format: 1, date: new Date().toISOString().slice(0, 10), phrases: saved, listes: savedW };
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mes-phrases-gym-des-mots-' + data.date + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  $('#backupMsg').textContent = 'Fichier créé : ' + saved.length + ' phrase(s) et ' + savedW.length + ' liste(s) de mots. Il est dans tes Téléchargements.';
+}
+
+/* Ajoute à « cible » les éléments valides de « source » qui n'y sont pas déjà ; renvoie le nombre ajouté */
+function mergeInto(cible, source){
+  if (!Array.isArray(source)) return 0;
+  const deja = new Set(cible.map(itemKey));
+  let n = 0;
+  source.forEach(x => {
+    if (!validItem(x) || deja.has(itemKey(x))) return;
+    cible.push({ tokens: x.tokens.map(k => ({ t: k.t, n: k.n })) });
+    deja.add(itemKey(x)); n++;
+  });
+  return n;
+}
+
+function importPhrases(file){
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    let data;
+    try { data = JSON.parse(lecteur.result); } catch (e) { data = null; }
+    if (!data || data.app !== BACKUP_APP){
+      $('#backupMsg').textContent = 'Ce fichier n’est pas une sauvegarde de « La gym des mots ».';
+      return;
+    }
+    const np = mergeInto(saved, data.phrases), nl = mergeInto(savedW, data.listes);
+    store.set('gymDesMotsPhrases', saved);
+    store.set('gymDesMotsListes', savedW);
+    buildSrc(srcOrigin() === 'mine' ? 'srand' : 'rand');
+    $('#backupMsg').textContent = (np || nl)
+      ? 'Ajouté : ' + np + ' phrase(s) et ' + nl + ' liste(s) de mots.'
+      : 'Rien de nouveau : tout ce que contient ce fichier est déjà enregistré.';
+  };
+  lecteur.readAsText(file);
+}
+
+$('#exportBtn').addEventListener('click', exportPhrases);
+$('#importBtn').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) importPhrases(f);
+  e.target.value = '';                       // permet de réimporter le même fichier
+});
 $('#src').addEventListener('change', onSrcChange);
 
 /* natures */
