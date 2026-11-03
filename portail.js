@@ -24,6 +24,13 @@
   if (enLigne && !dansAppli) {
     if (!surAccueil) { location.replace(racine.href); return; }
     document.documentElement.classList.add('a-installer');
+    // Chrome / Edge / Brave proposent l'installation par cet événement, parfois très tôt :
+    // on le garde de côté pour le bouton « Installer » de l'accueil.
+    addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      window.propositionInstall = e;
+      document.dispatchEvent(new Event('installation-possible'));
+    });
   }
 
   /* 3. Numéro de version dans la signature */

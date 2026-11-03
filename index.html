@@ -252,14 +252,33 @@
   (function boutonInstaller(){
     if(!document.documentElement.classList.contains('a-installer')) return;
     const btn = document.getElementById('installer'), aide = document.getElementById('aide-install');
-    let proposition = null;
-    addEventListener('beforeinstallprompt', e => { e.preventDefault(); proposition = e; });   // fourni par Chrome / Edge
+    const DEJA = 'L’application est déjà installée sur cet ordinateur : ouvre « Le cartable magique » depuis son icône '
+               + '(bureau, menu Démarrer, ou icône « Ouvrir dans l’application » à droite de la barre d’adresse).';
+
     addEventListener('appinstalled', () => {
       btn.hidden = true;
       aide.textContent = 'Installée ! Ouvre « Le cartable magique » depuis son icône (bureau ou menu Démarrer).';
     });
-    btn.onclick = () => {
-      if(proposition){ proposition.prompt(); proposition = null; return; }
+
+    /* L'appli est-elle déjà installée ? (Chrome / Edge savent le dire, grâce à « related_applications » du manifeste) */
+    async function dejaInstallee(){
+      try {
+        const apps = navigator.getInstalledRelatedApps ? await navigator.getInstalledRelatedApps() : [];
+        return apps.length > 0;
+      } catch(e){ return false; }
+    }
+    dejaInstallee().then(oui => { if(oui) aide.textContent = DEJA; });
+
+    btn.onclick = async () => {
+      const p = window.propositionInstall;                    // gardée par portail.js
+      if(p){
+        p.prompt();
+        const choix = await p.userChoice.catch(() => null);
+        window.propositionInstall = null;
+        if(choix && choix.outcome === 'dismissed') aide.textContent = 'Installation annulée. Tu peux recliquer sur « Installer » quand tu veux.';
+        return;
+      }
+      if(await dejaInstallee()){ aide.textContent = DEJA; return; }
       aide.textContent = 'Dans Chrome, Edge ou Brave : menu du navigateur (⋮, … ou ☰), puis « Installer Le cartable magique » '
                        + '(ou petite icône d’installation à droite de la barre d’adresse). '
                        + 'Sur iPad ou iPhone avec Safari : bouton Partager, puis « Sur l’écran d’accueil ». '
