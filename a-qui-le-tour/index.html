@@ -19,7 +19,7 @@
   --pink:#ff3b8d; --orange:#ff9f1c; --yellow:#ffd60a; --green:#06d6a0;
   --blue:#3a86ff; --purple:#8338ec; --ink:#2b2150;
   /* Hauteur réservée au titre et au bandeau du gagnant : la roue occupe tout le reste de l'écran */
-  --over: 240px;
+  --over: 264px;                         /* +24 px : titre descendu (voir h1) */
 }
 * { box-sizing:border-box; margin:0; padding:0; }
 [hidden] { display:none !important; }
@@ -51,6 +51,7 @@ h1 {
   letter-spacing:3px; line-height:1.05; text-align:center;
   color:#fff;
   text-shadow:3px 3px 0 var(--pink), 6px 6px 0 var(--blue), 9px 9px 0 rgba(43,33,80,.35);
+  margin-top:24px;                       /* le titre ne touche plus le haut de l'écran */
   margin-bottom:16px;
 }
 
@@ -354,7 +355,8 @@ textarea::placeholder { color:rgba(43,33,80,.4); font-weight:400; }
 /* ==========================================================================
    9. Mode plein écran et petits écrans
    ========================================================================== */
-body.fs-active { --over:226px; padding:8px; }
+body.fs-active { --over:254px; padding:8px; }
+body.fs-active h1 { margin-top:28px; }   /* même position du titre qu'en mode normal (marge de page plus petite) */
 body.fs-active .container { max-width:100%; }
 body.fs-active .top-btn { opacity:.8; }
 body.fs-active .history-panel { max-width:760px; padding:10px 16px; }
