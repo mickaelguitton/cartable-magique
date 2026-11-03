@@ -21,6 +21,9 @@
   const dansAppli = ['fullscreen', 'standalone', 'minimal-ui', 'window-controls-overlay']
     .some(m => matchMedia('(display-mode: ' + m + ')').matches) || navigator.standalone === true;
   const surAccueil = new URL('./', location.href).href === racine.href;
+  // L'appli installée laisse une marque (même site = même mémoire) : l'onglet du navigateur
+  // saura ainsi qu'elle est déjà installée sur cet ordinateur.
+  if (enLigne && dansAppli) { try { localStorage.setItem('cartable-installe', '1'); } catch (e) {} }
   if (enLigne && !dansAppli) {
     if (!surAccueil) { location.replace(racine.href); return; }
     document.documentElement.classList.add('a-installer');

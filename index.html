@@ -144,6 +144,10 @@
   #installer:active{transform:translateY(4px);box-shadow:0 2px 0 #6A4BD1}
   #aide-install{margin-top:2.5vh;font-size:clamp(15px,1.9vh,19px);color:var(--encre-douce);line-height:1.4}
   #aide-install:empty{display:none}
+  .carte-install button.lien{
+    background:none;border:none;cursor:pointer;color:var(--violet);
+    font:500 clamp(15px,1.9vh,18px) "Fredoka",system-ui,sans-serif;text-decoration:underline;
+  }
   .carte-install p.navigateurs{
     margin:3vh 0 0;padding-top:2vh;border-top:2px dashed #E3DDF8;
     font-size:clamp(14px,1.8vh,17px);font-weight:500;line-height:1.5;color:var(--encre-douce);
@@ -190,9 +194,17 @@
 <section id="installation" aria-label="Installer l'application">
   <div class="carte-install">
     <img src="icon-192.png" alt="">
-    <p>Pour utiliser les outils en classe, installe l'application.<br>
-       Elle fonctionnera même sans internet et se mettra à jour toute seule.</p>
-    <button id="installer" type="button">Installer</button>
+    <div id="etat-a-installer">
+      <p>Pour utiliser les outils en classe, installe l'application.<br>
+         Elle fonctionnera même sans internet et se mettra à jour toute seule.</p>
+      <button id="installer" type="button">Installer</button>
+    </div>
+    <div id="etat-installee" hidden>
+      <p><b>L'application est installée sur cet ordinateur.</b><br>
+         Ouvre « Le cartable magique » depuis son icône : sur le bureau, dans le menu Démarrer,
+         ou avec le bouton « Ouvrir dans l'application » à droite de la barre d'adresse.</p>
+      <button id="reinstaller" class="lien" type="button">Elle n'est plus installée ? L'installer à nouveau</button>
+    </div>
     <div id="aide-install" role="status"></div>
     <p class="navigateurs">
       <b>Navigateurs compatibles</b><br>
@@ -252,22 +264,38 @@
   (function boutonInstaller(){
     if(!document.documentElement.classList.contains('a-installer')) return;
     const btn = document.getElementById('installer'), aide = document.getElementById('aide-install');
-    const DEJA = 'L’application est déjà installée sur cet ordinateur : ouvre « Le cartable magique » depuis son icône '
-               + '(bureau, menu Démarrer, ou icône « Ouvrir dans l’application » à droite de la barre d’adresse).';
+    const aInstaller = document.getElementById('etat-a-installer');
+    const installee  = document.getElementById('etat-installee');
 
-    addEventListener('appinstalled', () => {
-      btn.hidden = true;
-      aide.textContent = 'Installée ! Ouvre « Le cartable magique » depuis son icône (bureau ou menu Démarrer).';
-    });
+    /* Affiche l'un ou l'autre état de l'écran */
+    function montrerInstallee(oui){
+      aInstaller.hidden = oui;
+      installee.hidden  = !oui;
+      aide.textContent  = '';
+    }
 
-    /* L'appli est-elle déjà installée ? (Chrome / Edge savent le dire, grâce à « related_applications » du manifeste) */
+    /* L'appli est-elle déjà installée ? Deux indices :
+       - la marque laissée par l'appli elle-même (voir portail.js) ;
+       - la réponse de Chrome / Edge (« related_applications » du manifeste), quand ils savent la donner. */
     async function dejaInstallee(){
+      try { if (localStorage.getItem('cartable-installe') === '1') return true; } catch(e) {}
       try {
         const apps = navigator.getInstalledRelatedApps ? await navigator.getInstalledRelatedApps() : [];
         return apps.length > 0;
       } catch(e){ return false; }
     }
-    dejaInstallee().then(oui => { if(oui) aide.textContent = DEJA; });
+    dejaInstallee().then(montrerInstallee);
+
+    addEventListener('appinstalled', () => {
+      try { localStorage.setItem('cartable-installe', '1'); } catch(e) {}
+      montrerInstallee(true);
+    });
+
+    /* « Elle n'est plus installée ? » : on oublie la marque et on revient au bouton Installer */
+    document.getElementById('reinstaller').onclick = () => {
+      try { localStorage.removeItem('cartable-installe'); } catch(e) {}
+      montrerInstallee(false);
+    };
 
     btn.onclick = async () => {
       const p = window.propositionInstall;                    // gardée par portail.js
@@ -278,7 +306,6 @@
         if(choix && choix.outcome === 'dismissed') aide.textContent = 'Installation annulée. Tu peux recliquer sur « Installer » quand tu veux.';
         return;
       }
-      if(await dejaInstallee()){ aide.textContent = DEJA; return; }
       aide.textContent = 'Dans Chrome, Edge ou Brave : menu du navigateur (⋮, … ou ☰), puis « Installer Le cartable magique » '
                        + '(ou petite icône d’installation à droite de la barre d’adresse). '
                        + 'Sur iPad ou iPhone avec Safari : bouton Partager, puis « Sur l’écran d’accueil ». '
