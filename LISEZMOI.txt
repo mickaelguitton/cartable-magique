@@ -28,3 +28,9 @@ AJOUTER UN OUTIL
   2. Ajouter sa capture dans images/ et sa tuile dans index.html (copier une tuile existante).
   3. Ajouter son dossier et sa capture dans la liste FILES de sw.js.
   4. Changer le numéro dans version.js.
+
+STATISTIQUES ANONYMES
+  L'appli envoie des statistiques anonymes (sans cookie ni donnée personnelle) à GoatCounter :
+  installations, nombre d'ordinateurs différents (« Nouvel ordinateur ») et ouvertures du portail
+  et de chaque outil. Tableau de bord : https://cartable-magique.goatcounter.com
+  Rien n'est affiché dans l'appli. Le code se trouve dans portail.js (partie 4).

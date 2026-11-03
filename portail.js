@@ -3,6 +3,7 @@
    - affiche le numéro de version (venu de version.js) dans la signature ;
    - affiche les boutons « Accueil » (cachés quand l'outil est ouvert seul, hors du portail) ;
    - rend l'installation obligatoire sur le site (écran « Installer ») ;
+   - envoie des statistiques anonymes d'utilisation (aucun affichage) ;
    - active le fonctionnement hors ligne et la mise à jour automatique.
    M. Guitton — fichier mis au point avec l'aide de Claude AI. */
 (function () {
@@ -45,6 +46,33 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', afficherVersion);
   else afficherVersion();
+
+  /* 4. Statistiques anonymes (GoatCounter, tableau de bord : https://cartable-magique.goatcounter.com)
+     Rien n'est affiché dans l'appli. Aucune donnée personnelle, aucun cookie, aucun identifiant :
+     - « Installation »        : quelqu'un vient d'installer l'appli ;
+     - « Nouvel ordinateur »   : première ouverture de l'appli sur un ordinateur (envoyé une seule fois par ordinateur) ;
+     - pages « /accueil », « /calcul-mental »… : chaque ouverture du portail ou d'un outil dans l'appli.
+     Le nombre de « Nouvel ordinateur » = nombre d'ordinateurs différents qui utilisent l'appli.
+     Sans internet, rien n'est envoyé (l'appli fonctionne normalement). */
+  const STATS = 'https://cartable-magique.goatcounter.com/count';
+  function compter(chemin, titre, evenement, quandEnvoye) {
+    if (!enLigne || !navigator.onLine) return;
+    const img = new Image();
+    if (quandEnvoye) img.onload = quandEnvoye;
+    img.src = STATS + '?p=' + encodeURIComponent(chemin) + '&t=' + encodeURIComponent(titre)
+            + (evenement ? '&e=true' : '') + '&rnd=' + Math.random().toString(36).slice(2);
+  }
+  addEventListener('appinstalled', () => compter('installation', 'Installation de l’appli', true));
+  if (enLigne && dansAppli) {
+    // Une seule fois par ordinateur : la marque n'est posée qu'une fois l'envoi réussi
+    let dejaCompte = false;
+    try { dejaCompte = localStorage.getItem('cartable-compte') === '1'; } catch (e) {}
+    if (!dejaCompte) compter('nouvel-ordinateur', 'Nouvel ordinateur', true,
+      () => { try { localStorage.setItem('cartable-compte', '1'); } catch (e) {} });
+    // Ouverture de la page (accueil ou outil)
+    const page = surAccueil ? 'accueil' : location.pathname.replace(racine.pathname, '').replace(/\/(index\.html)?$/, '');
+    compter('/' + page, document.title || page, false);
+  }
 
   /* 4. Hors ligne et mise à jour automatique (seulement sur le site hébergé) */
   if (!enLigne || !('serviceWorker' in navigator)) return;
