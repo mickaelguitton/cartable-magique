@@ -80,13 +80,14 @@ h1,h2,p{margin:0}
 #savedBox summary{cursor:pointer}
 /* natures : pastilles à cocher */
 .natGrid{display:flex;flex-wrap:wrap;gap:8px}
-.natItem{position:relative;display:inline-flex;align-items:center;gap:9px;height:42px;padding:0 15px;border-radius:12px;border:2px solid #c3d0ea;background:#eef3fc;color:#7b7aa6;cursor:pointer;user-select:none;font-weight:700;font-size:.98rem}
+/* natures : blanc = non révisée, rose pâle (même rose que les autres choix du menu) = révisée */
+.natItem{position:relative;display:inline-flex;align-items:center;gap:9px;height:42px;padding:0 15px;border-radius:12px;border:2px solid #c3d0ea;background:#fff;color:#4a4876;cursor:pointer;user-select:none;font-weight:700;font-size:.98rem}
 .natItem input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
-.natItem.on{border-color:#26215c;background:#fff;color:#26215c}
+.natItem.on{border-color:#26215c;background:var(--m-tint);color:#26215c;box-shadow:0 3px 0 #26215c}
 .natItem:focus-within{outline:3px solid #ff4f8b;outline-offset:2px}
 .natItem .sw{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1.5px #26215c;background:var(--c);flex:none}
 .natItem small{color:var(--m-soft);font-weight:600;font-size:.82rem}
-.natItem.fixed{cursor:default;border-style:dashed;background:#fff;color:var(--m-soft)}
+.natItem.fixed{cursor:default;border-style:dashed;background:var(--m-tint);color:#26215c;box-shadow:none}
 .natItem.fixed input{display:none}
 /* sélecteurs à deux choix */
 .kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -195,6 +196,16 @@ h1,h2,p{margin:0}
   .bi span.lb{font-size:.5rem;padding:.1em .3em}
     .ttl h1{font-size:1.4rem}
 }
+/* Écran très bas (téléphone en paysage) : tout l'écran de jeu tient sans défiler */
+@media (max-height:500px) and (orientation:landscape){
+  #game{gap:1vh;padding:1vh 1.5vw}
+  .topbar{--tfs:1.7rem}
+  .topbar .grp{top:0}
+  .topbar .btn.small,#tourInfo{height:1.9rem;font-size:.8rem}
+  #sentence{height:30vh;padding:1vh 1vw;border-radius:18px;font-size:clamp(.9rem,2.6vw,1.8rem)}
+  #band{--fh:28vh !important;padding:.3vh .3vw .5vh}
+  #mainBtn{font-size:.95rem;padding:.3em 1.4em}
+}
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
 }
@@ -226,7 +237,7 @@ h1,h2,p{margin:0}
   <section class="panel">
     <h2><i>1</i>Natures à réviser</h2>
     <div class="natGrid" id="natGrid"></div>
-    <p class="muted">Les natures grisées ne sont pas révisées : leurs mots reçoivent la posture « on ne sait pas », c’est aussi une bonne réponse à savoir donner !</p>
+    <p class="muted">Les natures en blanc ne sont pas révisées : leurs mots reçoivent la posture « on ne sait pas », c’est aussi une bonne réponse à savoir donner !</p>
   </section>
 
   <section class="panel p2">
@@ -1276,7 +1287,10 @@ setTimeout(updSummary, 0);
 (function colorTitle(){
   const colors = ['#ff4f8b','#ff9f1c','#2ec4b6','#4361ee','#9b5de5','#f15bb5','#00a6a6','#e63946','#ff4f8b','#ff9f1c','#2ec4b6','#4361ee'];  // une couleur par lettre
   let i = 0;
-  const html = [...'La gym des mots'].map(ch => ch === ' ' ? ' ' : '<span style="color:' + colors[i++] + '">' + ch + '</span>').join('');
+  // chaque mot est regroupé (white-space:nowrap) pour qu'il ne soit jamais coupé en fin de ligne
+  const html = 'La gym des mots'.split(' ').map(mot =>
+    '<span style="white-space:nowrap">' + [...mot].map(ch => '<span style="color:' + colors[i++] + '">' + ch + '</span>').join('') + '</span>'
+  ).join(' ');
   document.querySelectorAll('.gtitle').forEach(e => e.innerHTML = html);
 })();
 

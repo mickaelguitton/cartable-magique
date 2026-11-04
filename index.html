@@ -55,11 +55,7 @@
     font-size:clamp(36px,min(6.5vw,10vh),88px);
     font-weight:700;letter-spacing:1px;line-height:1.05;
   }
-  h1 .l:nth-of-type(5n+1){color:var(--bleu)}
-  h1 .l:nth-of-type(5n+2){color:var(--orange)}
-  h1 .l:nth-of-type(5n+3){color:var(--rouge)}
-  h1 .l:nth-of-type(5n+4){color:var(--vert)}
-  h1 .l:nth-of-type(5n+5){color:var(--violet)}
+  h1 .mot{display:inline-block;white-space:nowrap}   /* un mot n'est jamais coupé en fin de ligne */
 
   /* Lettres qui dansent doucement, chacune avec un petit décalage */
   h1 .l{
@@ -153,6 +149,17 @@
     font-size:clamp(14px,1.8vh,17px);font-weight:500;line-height:1.5;color:var(--encre-douce);
   }
   .navigateurs b{color:var(--encre);font-weight:600}
+
+  /* Écran « Installer » sur un écran très bas (téléphone en paysage) : on resserre */
+  @media (max-height:500px){
+    html.a-installer header{margin-bottom:1vh}
+    .carte-install{padding:12px 24px;border-radius:22px}
+    .carte-install img{display:none}
+    .carte-install p{font-size:15px;margin-bottom:8px}
+    #installer{font-size:18px;padding:.4em 1.4em}
+    #aide-install{font-size:13px;margin-top:8px}
+    .carte-install p.navigateurs{font-size:12px;margin-top:8px;padding-top:6px}
+  }
 
   /* ---------- Bulle « Une remarque ? Une idée ? » (coin en bas à droite) ---------- */
   #contact{
@@ -268,9 +275,14 @@
   /* Colore le titre lettre par lettre (les espaces restent neutres) */
   (function colorerTitre(){
     const h1 = document.getElementById('titre');
-    h1.innerHTML = [...h1.textContent].map((c, i) =>
-      c === ' ' ? ' ' : '<span class="l" style="--i:' + i + '" aria-hidden="true">' + c + '</span>'
-    ).join('');
+    const COULEURS = ['var(--bleu)', 'var(--orange)', 'var(--rouge)', 'var(--vert)', 'var(--violet)'];
+    let i = 0;
+    h1.innerHTML = h1.textContent.split(' ').map(mot =>
+      '<span class="mot" aria-hidden="true">' + [...mot].map(c => {
+        const s = '<span class="l" style="--i:' + i + ';color:' + COULEURS[i % 5] + '">' + c + '</span>';
+        i++; return s;
+      }).join('') + '</span>'
+    ).join(' ');
   })();
 
   /* Dispose les tuiles pour qu'elles tiennent toutes dans l'écran.

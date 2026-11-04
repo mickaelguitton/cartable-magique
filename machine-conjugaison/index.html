@@ -334,6 +334,16 @@ body.light .pop .pwarn{border-left-color:#c24f00;background:rgba(194,79,0,.1)}
 
 body.fs .topbar{opacity:.25}
 body.fs .topbar:hover{opacity:1}
+
+/* Écran très bas (téléphone en paysage) : titre plus petit et sous la barre de boutons */
+@media (max-height:500px) and (orientation:landscape){
+  body{padding-top:44px;padding-bottom:0}
+  h1{font-size:clamp(1.3rem,3.6vw,1.9rem)}
+  .container{gap:.6vh;justify-content:flex-start}
+  :root{--reel-h:clamp(64px,19vh,100px)}
+  .btn-icon{padding:4px 9px;font-size:.78rem}
+  .topbar{top:8px;gap:6px}
+}
 </style>
 <!-- Portail « Le cartable magique » : version, bouton Accueil, hors ligne et mise à jour (voir ../portail.js) -->
 <link rel="manifest" href="../manifest.webmanifest">

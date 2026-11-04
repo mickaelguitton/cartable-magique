@@ -370,6 +370,14 @@ body.fs-active .history-panel { max-width:760px; padding:10px 16px; }
 .signature{font-size:.7rem;font-weight:600;opacity:.45;text-align:right}
 .signature a{color:inherit;text-decoration:none}
 .signature a:hover{text-decoration:underline}
+
+/* Écran très bas (téléphone en paysage) : titre plus petit pour laisser la place à la roue */
+@media (max-height:500px) and (orientation:landscape){
+  :root{--over:160px}
+  body.fs-active{--over:156px}
+  h1, body.fs-active h1{font-size:1.6rem;margin-top:34px;margin-bottom:2px}   /* sous la barre de boutons */
+  .winner{min-height:44px;padding:4px 28px;font-size:1.5rem;border-width:3px}
+}
 </style>
 
 <!-- Polices intégrées dans le fichier (licence SIL Open Font License) : aucune connexion Internet nécessaire.

@@ -37,6 +37,37 @@
     });
   }
 
+  /* 2 bis. Téléphone tenu en portrait (dans l'appli installée) : message « Tourne ton téléphone ».
+     Les outils sont pensés pour l'écran projeté, donc pour le paysage. Seuls les petits écrans tactiles
+     sont concernés (téléphones) : les tablettes et les ordinateurs ne voient jamais ce message. */
+  if (enLigne && dansAppli) {
+    const style = document.createElement('style');
+    style.textContent = `
+      #tourne-telephone{display:none}
+      @media (orientation:portrait) and (max-width:599px) and (pointer:coarse){
+        #tourne-telephone{
+          display:flex;position:fixed;inset:0;z-index:2147483647;flex-direction:column;align-items:center;justify-content:center;
+          gap:24px;padding:32px;text-align:center;color:#26215c;font:600 24px 'Fredoka',system-ui,sans-serif;
+          background:linear-gradient(120deg,#DDEFFF 0%,#E9E3FF 50%,#FFE6F1 100%);
+        }
+        #tourne-telephone svg{width:120px;height:120px;animation:tourne-tel 2.4s ease-in-out infinite}
+        #tourne-telephone small{display:block;margin-top:8px;font-size:17px;line-height:1.35;font-weight:500;color:#5B6785}
+      }
+      @keyframes tourne-tel{0%,25%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+      @media (prefers-reduced-motion:reduce){#tourne-telephone svg{animation:none;transform:rotate(-90deg)}}`;
+    document.head.appendChild(style);
+    const poser = () => {
+      const d = document.createElement('div');
+      d.id = 'tourne-telephone';
+      d.setAttribute('role', 'alert');
+      d.innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="18" y="6" width="28" height="52" rx="6" fill="#fff" stroke="#8E6CEF" stroke-width="4"/>'
+        + '<rect x="23" y="13" width="18" height="34" rx="2" fill="#E9E3FF"/><circle cx="32" cy="52" r="2.5" fill="#8E6CEF"/></svg>'
+        + '<div>Tourne ton téléphone<br><small>Le cartable magique s’utilise en mode paysage.</small></div>';
+      document.body.appendChild(d);
+    };
+    if (document.body) poser(); else document.addEventListener('DOMContentLoaded', poser);
+  }
+
   /* 3. Numéro de version dans la signature */
   function afficherVersion() {
     if (typeof APP_VERSION === 'undefined') return;
