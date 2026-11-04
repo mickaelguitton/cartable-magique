@@ -1,21 +1,13 @@
-/* Service worker du « Cartable magique » : fait fonctionner le portail et tous ses outils sans internet,
-   et installe automatiquement les nouvelles versions.
-   Le numéro de version vient de version.js (seul fichier à modifier à chaque nouvelle version).
+/* Service worker de l'ancienne adresse « Le cartable magique ».
+   L'appli s'appelle maintenant « Le tableau magique » (https://mickaelguitton.github.io/tableau-magique/).
+   Sur les ordinateurs où l'ancienne appli est installée, cette version remplace tout par la page
+   de déménagement (index.html), quelle que soit la page demandée (accueil ou outil).
    M. Guitton — fichier mis au point avec l'aide de Claude AI. */
 importScripts('version.js');
 const CACHE = 'cartable-magique-' + self.APP_VERSION;
+const FILES = ['./', 'version.js', 'manifest.webmanifest', 'nouvelle-icone.png', 'favicon.png',
+               'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'fonts/fredoka.woff2'];
 
-/* Tous les fichiers à garder pour le hors ligne.
-   POUR AJOUTER UN OUTIL : ajouter ici son dossier (ex. './frise/'), comme les quatre ci-dessous. */
-const FILES = [
-  './', 'version.js', 'portail.js', 'manifest.webmanifest', 'fonts/fredoka.woff2',
-  'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon.png',
-  'images/calcul-mental.jpg', 'images/gym-des-mots.jpg', 'images/machine-conjugaison.jpg', 'images/a-qui-le-tour.jpg',
-  './calcul-mental/', './gym-des-mots/', './gym-des-mots/lexique.js', './machine-conjugaison/', './a-qui-le-tour/'
-];
-
-/* Installation : on télécharge toute la nouvelle version (sans passer par le cache du navigateur),
-   puis on l'active tout de suite. */
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
@@ -24,7 +16,7 @@ self.addEventListener('install', e => {
   );
 });
 
-/* Activation : on supprime les anciennes versions. */
+/* Activation : on efface toutes les anciennes versions de l'appli */
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -33,16 +25,14 @@ self.addEventListener('activate', e => {
   );
 });
 
-/* Utilisation : tout vient du cache (donc aussi sans connexion).
-   « dossier/index.html » et « dossier/ » désignent la même page. */
+/* Toute page demandée (accueil ou ancien outil) → page de déménagement */
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) return;               // liens externes (licence…) : laissés au navigateur
-  const cle = url.pathname.endsWith('/index.html') ? url.pathname.slice(0, -10) : url.pathname;
-  e.respondWith(
-    caches.match(cle, { ignoreSearch: true })
-      .then(r => r || fetch(e.request))
-      .catch(() => caches.match('./'))
-  );
+  if (url.origin !== location.origin) return;
+  if (e.request.mode === 'navigate') {
+    e.respondWith(caches.match('./').then(r => r || fetch(e.request)));
+    return;
+  }
+  e.respondWith(caches.match(url.pathname, { ignoreSearch: true }).then(r => r || fetch(e.request)));
 });
