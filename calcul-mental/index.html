@@ -144,7 +144,7 @@ body.seq #chrono{display:none}                       /* « un calcul à la fois 
 @keyframes alarm{50%{transform:scale(1.12);border-color:#ff6b6b}}
 #cd{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.78);cursor:pointer}
 #cd.on{display:flex}
-#cd span{font-size:min(55vh,45vw);font-weight:700;color:var(--c1);line-height:1;animation:cdpop .9s ease-out both}
+#cd span{font-size:min(55vh,45vw);font-weight:700;color:var(--cdcol,var(--c1));line-height:1;animation:cdpop .9s ease-out both}
 @keyframes cdpop{0%{transform:scale(2.2);opacity:0}25%{transform:scale(1);opacity:1}85%{opacity:1}100%{transform:scale(.7);opacity:0}}
 @media (prefers-reduced-motion:reduce){#cd span,#tdisp.alarm{animation:none}}
 .num{flex:none;width:min(6vh,4.2vw);height:min(6vh,4.2vw);border-radius:50%;background:var(--col);color:#fff;display:grid;place-items:center;font-weight:700;font-size:min(3.2vh,2.2vw)}
@@ -1642,9 +1642,11 @@ const DOCX=(function(){
   const tfill=$('tfill');
   /* Compte à rebours 3-2-1 plein écran avant le chrono (option « Compte à rebours ») ; un clic l'annule */
   const cdEl=$('cd');let cdT=null;
+  let cdSerie=0;                                        /* couleur du 3-2-1 : rouge, orange, vert, bleu, violet, puis on recommence (couleurs des numéros) */
   function tick1(){if(!O.sound)return;const c=audio();if(c)note(c,660,0,.25,.1);}      /* petit bip à chaque chiffre du 3-2-1 */
   function countdown(done){
     let n=3;cdEl.classList.add('on');
+    cdEl.style.setProperty('--cdcol','var(--c'+(cdSerie%5)+')');cdSerie++;
     const step=()=>{
       if(n===0){stopCountdown();done();return;}
       cdEl.innerHTML='<span>'+n+'</span>';tick1();n--;cdT=setTimeout(step,900);
