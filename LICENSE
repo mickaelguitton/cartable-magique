@@ -10,3 +10,8 @@ La gym des mots est inspirée de l'article « Grammaire Gym » du blog Charivari
 Texte officiel de la licence :
 https://creativecommons.org/licenses/by-nc/4.0/deed.fr  (résumé)
 https://creativecommons.org/licenses/by-nc/4.0/legalcode.fr  (texte complet)
+
+Le fichier gym-des-mots/lexique.js (dictionnaire des natures des mots) contient des données tirées de
+Lexique 3.83 (B. New, C. Pallier et al., www.lexique.org), sous licence CC BY-SA 4.0 :
+ce fichier de données est lui aussi sous licence CC BY-SA 4.0
+(https://creativecommons.org/licenses/by-sa/4.0/deed.fr).

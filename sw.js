@@ -11,7 +11,7 @@ const FILES = [
   './', 'version.js', 'portail.js', 'manifest.webmanifest', 'fonts/fredoka.woff2',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon.png',
   'images/calcul-mental.jpg', 'images/gym-des-mots.jpg', 'images/machine-conjugaison.jpg', 'images/a-qui-le-tour.jpg',
-  './calcul-mental/', './gym-des-mots/', './machine-conjugaison/', './a-qui-le-tour/'
+  './calcul-mental/', './gym-des-mots/', './gym-des-mots/lexique.js', './machine-conjugaison/', './a-qui-le-tour/'
 ];
 
 /* Installation : on télécharge toute la nouvelle version (sans passer par le cache du navigateur),

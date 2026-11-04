@@ -73,6 +73,9 @@ h1,h2,p{margin:0}
 .chip select{padding:.25em .3em;font-size:.88rem}
 .srow{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e3e6f3;font-weight:600}
 .srow span{flex:1;min-width:0;overflow-wrap:anywhere}
+.averif{font-style:normal;font-size:.8em;font-weight:700;color:#b45309;background:#fff3c4;border-radius:6px;padding:1px 6px;margin-right:4px}
+#pasteBox{margin-top:8px}
+#pasteText{width:100%;min-height:110px}
 #savedBox{margin-top:8px;font-weight:700}
 #savedBox summary{cursor:pointer}
 /* natures : pastilles à cocher */
@@ -260,9 +263,18 @@ h1,h2,p{margin:0}
     <details id="savedBox" class="hidden"><summary id="savedSum"></summary><div id="savedList"></div></details>
     <div class="row hidden" id="backupRow">
       <button class="btn small" id="exportBtn" type="button">Exporter mes phrases</button>
+      <button class="btn small" id="pasteBtn" type="button">Coller des phrases (Word…)</button>
       <button class="btn small" id="importBtn" type="button">Importer des phrases</button>
       <input type="file" id="importFile" accept=".json,application/json" hidden>
       <span class="muted" id="backupMsg"></span>
+    </div>
+    <div id="pasteBox" class="hidden">
+      <textarea id="pasteText" placeholder="Colle ici tes phrases, une par ligne (copiées depuis Word, un PDF, un site…)."></textarea>
+      <div class="row">
+        <button class="btn small" id="pasteAdd" type="button">Ajouter à « Mes phrases »</button>
+        <button class="btn small" id="pasteCancel" type="button">Annuler</button>
+        <span class="muted" id="pasteMsg"></span>
+      </div>
     </div>
     <div class="row hidden" id="delRow">
       <button class="btn small" id="delSaved" type="button">Supprimer cette phrase de « Mes phrases »</button>
@@ -325,6 +337,8 @@ h1,h2,p{margin:0}
   <div id="overlay" class="hidden"><div id="ovBox"></div></div>
 </div>
 
+<!-- Dictionnaire des natures (données Lexique 3.83, licence CC BY-SA 4.0 : voir lexique.js) -->
+<script src="lexique.js"></script>
 <script>
 /* La gym des mots, inspirée par Charivari, fichier créé par M. Guitton avec l’aide de Claude AI. */
 /* ============================================================
@@ -510,8 +524,12 @@ function renderSaved(){
   const w = kind() === 'words', list = w ? savedW : saved;
   $('#savedBox').classList.toggle('hidden', !list.length || srcOrigin() !== 'mine');
   $('#backupRow').classList.toggle('hidden', srcOrigin() !== 'mine');
+  if (srcOrigin() !== 'mine') $('#pasteBox').classList.add('hidden');
+  $('#pasteBtn').textContent = w ? 'Coller des listes de mots (Word…)' : 'Coller des phrases (Word…)';
+  $('#pasteText').placeholder = w ? 'Colle ici tes listes de mots, une liste par ligne (mots séparés par des virgules ou des espaces).'
+                                  : 'Colle ici tes phrases, une par ligne (copiées depuis Word, un PDF, un site…).';
   $('#savedSum').textContent = (w ? 'Mes listes de mots' : 'Mes phrases') + ' (' + list.length + ') : modifier ou supprimer';
-  $('#savedList').innerHTML = list.map((t,i) => `<div class="srow"><span>${esc(w ? t.tokens.map(x => x.t).join(', ') : plain(t.tokens))}</span><button class="btn small" type="button" data-edit="${i}">Modifier</button> <button class="btn small" type="button" data-del="${i}">Supprimer</button></div>`).join('');
+  $('#savedList').innerHTML = list.map((t,i) => `<div class="srow"><span>${t.check ? '<em class="averif">à vérifier</em> ' : ''}${esc(w ? t.tokens.map(x => x.t).join(', ') : plain(t.tokens))}</span><button class="btn small" type="button" data-edit="${i}">Modifier</button> <button class="btn small" type="button" data-del="${i}">Supprimer</button></div>`).join('');
   document.querySelectorAll('#savedList [data-edit]').forEach(b => b.addEventListener('click', () => {
     const i = +b.dataset.edit; editIdx = i;
     buildSrc('custom', 'mine');
@@ -541,7 +559,7 @@ function buildSrc(sel, org){
           : `<option value="rand">Une phrase au hasard (selon les natures cochées)</option>` + SENTS.map((t,i) => `<option value="b${i}">${i+1}. ${esc(plain(t))}</option>`).join('');
   } else {
     h = '';
-    if (list.length) h += `<option value="srand">${w ? 'Une de mes listes au hasard' : 'Une de mes phrases au hasard'}</option>` + list.map((t,i) => `<option value="s${i}">${esc(w ? t.tokens.map(x => x.t).join(', ') : plain(t.tokens))}</option>`).join('');
+    if (list.length) h += `<option value="srand">${w ? 'Une de mes listes au hasard' : 'Une de mes phrases au hasard'}</option>` + list.map((t,i) => `<option value="s${i}">${t.check ? '(à vérifier) ' : ''}${esc(w ? t.tokens.map(x => x.t).join(', ') : plain(t.tokens))}</option>`).join('');
     h += `<option value="custom">${w ? 'Écrire mes mots…' : 'Écrire ma phrase…'}</option>`;
   }
   $('#src').innerHTML = h;
@@ -601,7 +619,7 @@ function mergeInto(cible, source){
   let n = 0;
   source.forEach(x => {
     if (!validItem(x) || deja.has(itemKey(x))) return;
-    cible.push({ tokens: x.tokens.map(k => ({ t: k.t, n: k.n })) });
+    cible.push(Object.assign({ tokens: x.tokens.map(k => ({ t: k.t, n: k.n })) }, x.check ? { check: true } : {}));
     deja.add(itemKey(x)); n++;
   });
   return n;
@@ -627,6 +645,46 @@ function importPhrases(file){
   lecteur.readAsText(file);
 }
 
+/* ---------- Coller des phrases (depuis Word, un PDF…) ----------
+   Une phrase par ligne (plusieurs phrases sur une même ligne sont aussi séparées).
+   Les natures sont devinées automatiquement ; chaque phrase garde le repère « à vérifier »
+   jusqu'à ce qu'on l'ouvre avec « Modifier » et qu'on l'enregistre. */
+function decouperCollage(texte, mots){
+  return texte.replace(/\r/g, '').split('\n')
+    .map(l => l.replace(/^\s*(?:[-–•*·]|\d+[.)])\s*/, '').trim())        // puces et numéros de liste
+    .filter(Boolean)
+    .flatMap(l => mots ? [l] : l.split(/(?<=[.!?…])\s+(?=[«"]?\p{Lu})/u))  // plusieurs phrases sur une ligne
+    .map(l => l.trim()).filter(Boolean);
+}
+function ajouterCollage(){
+  const w = kind() === 'words', list = w ? savedW : saved;
+  const morceaux = decouperCollage($('#pasteText').value, w);
+  if (!morceaux.length){ $('#pasteMsg').textContent = w ? 'Colle d’abord tes listes de mots.' : 'Colle d’abord tes phrases.'; return; }
+  const deja = new Set(list.map(itemKey));
+  let n = 0;
+  morceaux.forEach(m => {
+    const tokens = (w ? tokenizeWords(m) : tokenize(m)).map(k => ({ t: k.t, n: k.n }));
+    if (!tokens.length) return;
+    const item = { tokens, check: true };
+    if (deja.has(itemKey(item))) return;
+    list.push(item); deja.add(itemKey(item)); n++;
+  });
+  store.set(w ? 'gymDesMotsListes' : 'gymDesMotsPhrases', list);
+  $('#pasteText').value = '';
+  $('#pasteBox').classList.add('hidden');
+  buildSrc('srand', 'mine');
+  $('#savedBox').open = true;
+  $('#backupMsg').textContent = n
+    ? n + (w ? ' liste(s) ajoutée(s)' : ' phrase(s) ajoutée(s)') + ' : vérifie les natures avec « Modifier » (repère « à vérifier »).'
+    : 'Rien de nouveau : ' + (w ? 'ces listes sont déjà enregistrées.' : 'ces phrases sont déjà enregistrées.');
+}
+$('#pasteBtn').addEventListener('click', () => {
+  $('#pasteBox').classList.toggle('hidden');
+  $('#pasteMsg').textContent = '';
+  if (!$('#pasteBox').classList.contains('hidden')) $('#pasteText').focus();
+});
+$('#pasteCancel').addEventListener('click', () => { $('#pasteText').value = ''; $('#pasteBox').classList.add('hidden'); });
+$('#pasteAdd').addEventListener('click', ajouterCollage);
 $('#exportBtn').addEventListener('click', exportPhrases);
 $('#importBtn').addEventListener('click', () => $('#importFile').click());
 $('#importFile').addEventListener('change', e => {
@@ -667,12 +725,114 @@ const WORDS = {
 };
 const GUESS = {};
 Object.entries(WORDS).forEach(([k, s]) => s.split(' ').forEach(w => GUESS[w] = k));
+/* ===== Détection automatique de la nature des mots =====
+   1. On cherche les natures possibles de chaque mot (mots outils connus, puis dictionnaire lexique.js,
+      puis terminaisons pour les mots inconnus).
+   2. On choisit la bonne grâce au contexte : après un déterminant → nom ou adjectif ;
+      après un pronom sujet → verbe ; « le, la, les » devant un verbe → pronom ; etc.
+   Le résultat reste à vérifier par l'enseignant. */
+const LEX = {};
+Object.entries(self.LEXIQUE_NATURES || {}).forEach(([tags, mots]) => mots.split(' ').forEach(m => { LEX[m] = tags; }));
+
+const MOTS_SUJETS   = new Set('je j’ tu il elle on nous vous ils elles qui'.split(' '));
+const MOTS_CLITIQUES = new Set('me m’ te t’ se s’ le la les l’ lui leur y en ne n’'.split(' '));
+const MOTS_ARTICLE  = new Set('le la les l’'.split(' '));
+const MOTS_COORD    = new Set('et ou mais donc or ni car'.split(' '));
+const MOTS_ETRE     = new Set('est sont suis es sommes êtes était étaient étais sera seront serai semble semblent paraît devient deviennent reste restent'.split(' '));
+const MOTS_INTENSIF = new Set('très trop si assez plus moins aussi bien tellement'.split(' '));
+const MOTS_NEGATION = { 'ne':'r', 'n’':'r', 'pas':'r', 'jamais':'r', 'plus':'r', 'rien':'p', 'personne':'p' };
+const MOTS_CONTRACTES = { 'du':'d', 'au':'d', 'aux':'d', 'des':'d', 'de':'e', 'd’':'e', 'plus':'r', 'moins':'r' };   // + quelques mots fixés   // déterminants définis contractés
+/* adjectifs qui se placent souvent AVANT le nom (« un petit chat ») */
+const ADJ_AVANT = new Set(('petit petite petits petites grand grande grands grandes gros grosse grosses vieux vieil vieille vieilles '
+  + 'jeune jeunes bon bonne bons bonnes beau bel belle beaux belles joli jolie jolis jolies nouveau nouvel nouvelle nouveaux nouvelles '
+  + 'mauvais mauvaise mauvaises long longue longs longues haut haute hauts hautes premier première premiers premières dernier dernière '
+  + 'derniers dernières gentil gentille gentils gentilles méchant méchante énorme énormes immense immenses minuscule minuscules '
+  + 'magnifique magnifiques superbe superbes vrai vraie vrais vraies faux fausse autre autres même mêmes').split(' '));
+
+const nettoyer = t => t.toLowerCase().replace(/'/g, '’').replace(/[.,;:!?…«»"()]/g, '');
+
+/* Natures possibles d'un mot, de la plus probable à la moins probable */
+function naturesPossibles(t, i){
+  const w = nettoyer(t);
+  if (/\s/.test(t.trim())) return ['v'];                         // temps composé déjà regroupé
+  if (/^\d/.test(w)) return ['d'];                               // nombre écrit en chiffres
+  if (MOTS_CONTRACTES[w]) return [MOTS_CONTRACTES[w]];
+  if (MOTS_ARTICLE.has(w)) return ['d', 'p'];
+  if (GUESS[w]) return [GUESS[w]];                               // mots outils de la liste de l'enseignant
+  if (w === 'leur' || w === 'leurs') return ['d', 'p'];
+  if (/^\p{Lu}/u.test(t) && i > 0) return ['n'];                // nom propre en milieu de phrase (Marie, Paris)
+  let lex = LEX[w] || LEX[w.replace(/’/g, "'")] || LEX[w.replace(/œ/g, 'oe').replace(/æ/g, 'ae')];
+  if (lex) {
+    const l = [...lex].map(k => k === 'k' ? (MOTS_COORD.has(w) ? 'c' : 'x') : k);
+    return [...new Set(l)];
+  }
+  if (/^\p{Lu}/u.test(t)) return ['n'];                          // nom propre inconnu en début de phrase
+  /* mot inconnu : on devine d'après sa terminaison */
+  if (/ment$/.test(w) && w.length > 6) return ['r'];
+  if (/(er|ir)$/.test(w)) return ['v'];
+  if (/(tion|sion|age|ure|eur|ette|isme|té|ance|ence)s?$/.test(w)) return ['n'];
+  if (/(eux|euse|able|ible|ique|al|ale|if|ive)s?$/.test(w)) return ['a'];
+  if (/(ent|ons|ez|ait|aient|ai|era|eront|ra|ront)$/.test(w)) return ['v'];
+  return ['x'];
+}
+
+/* Choix de la nature de chaque mot d'une phrase, d'après le contexte */
+function naturesDansLaPhrase(tokens){
+  const poss = tokens.map((o, i) => naturesPossibles(o.t, i));
+  let apresSujet = false;           // un pronom sujet vient d'être lu (seuls des « ne, le, lui… » depuis)
+  let verbeVu = false;              // la proposition a déjà son verbe
+  const res = [];
+  for (let i = 0; i < tokens.length; i++){
+    const w = nettoyer(tokens[i].t), c = poss[i], suiv = poss[i + 1] || [];
+    const prec = res[i - 1], precMot = i ? nettoyer(tokens[i - 1].t) : '';
+    let n = c[0];
+
+    if (MOTS_NEGATION[w] && (w === 'ne' || w === 'n’' || /^(ne|n’)$/.test(precMot) || res.slice(-3).some((x, k) => /^(ne|n’)$/.test(nettoyer(tokens[i - 3 + k] ? tokens[i - 3 + k].t : ''))))) {
+      n = MOTS_NEGATION[w];
+    } else if (MOTS_ARTICLE.has(w)) {
+      // « le, la, les, l’ » : pronom après un sujet, ou devant un mot qui ne peut être qu'un verbe
+      n = (apresSujet || (suiv[0] === 'v' && !suiv.includes('n') && !suiv.includes('a'))) ? 'p' : 'd';
+    } else if (w === 'leur' || w === 'leurs') {
+      // « leur » : déterminant devant un nom (leur chien), pronom devant un verbe (je leur parle)
+      n = (w === 'leurs' || suiv.includes('n') || suiv.includes('a')) && !apresSujet ? 'd' : 'p';
+    } else if (w === 'en' || w === 'y') {
+      n = apresSujet || w === 'y' ? 'p' : 'e';
+    } else if (c.length > 1 || c[0] === 'x') {
+      const a = c.includes('a'), no = c.includes('n'), v = c.includes('v'), e = c.includes('e');
+      const precPrec = res[i - 2];
+      const participe = /(é|ée|és|ées|i|ie|is|ies|u|ue|us|ues|it|ite|its|ites)$/.test(w);
+      const infinitif = /(er|ir|re|oir)$/.test(w);
+      if (apresSujet && v) n = 'v';
+      else if (e && suiv[0] === 'd') n = 'e';                               // « avant le repas », « entre les arbres »
+      else if (prec === 'v' && v && infinitif) n = 'v';                     // « il aime lire »
+      else if (prec === 'd') n = (a && ADJ_AVANT.has(w) && suiv.some(k => k === 'n')) ? 'a' : (no ? 'n' : a ? 'a' : n);
+      else if (prec === 'a' && precPrec === 'd' && no) n = 'n';             // « la grosse vague »
+      else if (a && MOTS_ETRE.has(precMot)) n = 'a';
+      else if (a && MOTS_INTENSIF.has(precMot)) n = 'a';
+      else if ((prec === 'n' || prec === 'a') && a && (!v || participe || (suiv.includes('v') && !suiv.includes('a')))) n = 'a';   // « le loup affamé », « une souris grise traverse »
+      else if ((prec === 'n' || prec === 'a') && v && !verbeVu) n = 'v';            // « le vent froid souffle »
+      else if (prec === 'n' && a) n = 'a';
+      else if (prec === 'e' && no) n = 'n';
+      if (w === 'si' && suiv.includes('a')) n = 'r';
+    }
+    if (w === 'que' || w === 'qu’') n = prec === 'n' ? 'p' : 'x';      // pronom relatif après un nom, sinon « on ne sait pas »
+    res.push(n);
+
+    // mise à jour du contexte
+    if (n === 'p' && MOTS_SUJETS.has(w)) apresSujet = true;
+    else if (apresSujet && (MOTS_CLITIQUES.has(w) || n === 'r' && /^(ne|n’)$/.test(w))) apresSujet = true;
+    else apresSujet = false;
+    if (n === 'v') verbeVu = true;
+    if (n === 'c' || /[,;:]$/.test(tokens[i].t) || w === 'qui' || w === 'que') verbeVu = false;
+  }
+  return res;
+}
+
+/* Nature d'un mot isolé (listes de mots) : banque de mots du jeu, sinon la nature la plus probable */
 function guess(t){
   const w = t.toLowerCase().replace(/[.,;:!?…«»"()]/g, '');
   if (WLOOK[w]) return WLOOK[w];
-  if (GUESS[w]) return GUESS[w];
-  if (/ment$/.test(w) && w.length > 6) return 'r';
-  return 'x';
+  return naturesPossibles(t, 0)[0];
 }
 function tokenize(text){
   text = text.replace(/\s+/g, ' ').trim();
@@ -682,13 +842,14 @@ function tokenize(text){
     if (/^[.,;:!?…«»"()\-]+$/.test(p) && out.length) out[out.length-1].t += p;
     else out.push({t:p});
   });
-  out.forEach(o => o.n = guess(o.t));
   /* temps composés : auxiliaire + participe passé = un seul verbe */
   const AUX = /^(a|as|ai|avons|avez|ont|avait|avaient|avais|aura|auront|est|es|suis|sommes|êtes|sont|était|étaient|étais|sera|seront)$/i;
   const PP = /^([a-zà-ÿ]+(é|ée|és|ées)|fait|faits|faite|faites|pris|prise|mis|mise|vu|vue|vus|eu|été|dit|dite|écrit|écrite|ouvert|ouverte|venu|venue|venus|venues|parti|partie|partis|parties|fini|finie|finis|finies|perdu|perdue|perdus|perdues|construit|construite|construits|construites|lu|lue|reçu|reçue|voulu|pu|dû|connu|su|cru|bu|vécu|appris|compris|surpris|offert|couvert|conduit|cuit)[.,;:!?…»)]*$/i;
   for (let k = out.length - 2; k >= 0; k--){
     if (AUX.test(out[k].t) && PP.test(out[k+1].t)){ out[k] = {t: out[k].t + ' ' + out[k+1].t, n:'v'}; out.splice(k+1, 1); }
   }
+  const nat = naturesDansLaPhrase(out);
+  out.forEach((o, k) => { o.n = nat[k]; });
   return out;
 }
 function tokenizeWords(text){
