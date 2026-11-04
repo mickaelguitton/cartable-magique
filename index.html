@@ -85,7 +85,12 @@
 
   /* Remplace l'ancienne version sur les ordinateurs où l'appli était installée (voir sw.js) */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+    const avaitVersion = !!navigator.serviceWorker.controller;
+    // nouvelle version de cette page reçue : on recharge tout de suite pour l'afficher
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (avaitVersion) location.reload(); });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(reg => { if (navigator.onLine) reg.update().catch(() => {}); })
+      .catch(() => {});
   }
 </script>
 </body>
