@@ -43,6 +43,10 @@
     font-size:clamp(14px,1.9vh,17px);color:var(--encre-douce);line-height:1.5;
   }
   .etapes ol{padding-left:1.3em}
+  .adresse{font-size:clamp(14px,1.9vh,17px);color:var(--encre-douce);margin-top:-1vh}
+  .adresse b{color:var(--encre);word-break:break-all}
+  #copier{margin-left:6px;font:500 14px "Fredoka",system-ui,sans-serif;border:2px solid var(--violet);color:var(--violet);
+          background:#fff;border-radius:999px;padding:.15em .8em;cursor:pointer}
   .etapes b{color:var(--encre)}
   @media (max-height:500px){ .carte img{display:none} .carte{padding:14px 24px} }
 </style>
@@ -52,16 +56,33 @@
     <img src="nouvelle-icone.png" alt="">
     <h1>Le cartable magique s'appelle maintenant<br><span>Le tableau magique</span></h1>
     <p>Mêmes outils, nouvelle adresse et nouvelle icône.</p>
-    <a class="bouton" href="https://mickaelguitton.github.io/tableau-magique/" target="_blank" rel="noopener">Ouvrir Le tableau magique</a>
+    <a class="bouton" id="ouvrir" href="https://mickaelguitton.github.io/tableau-magique/" target="_blank" rel="noopener">Ouvrir Le tableau magique</a>
+    <p class="adresse">Ou ouvre Chrome et tape l'adresse :<br><b id="adresse">mickaelguitton.github.io/tableau-magique</b>
+      <button id="copier" type="button">Copier l’adresse</button></p>
     <div class="etapes">
       <ol>
-        <li>Clique sur le bouton, puis sur <b>« Installer »</b> dans la page qui s'ouvre.</li>
-        <li>Désinstalle ensuite cette ancienne appli : clic droit sur son icône, ou menu <b>⋮</b> de la fenêtre, puis <b>« Désinstaller »</b>.</li>
+        <li>Clique sur le bouton, puis sur <b>« Installer »</b> dans la page qui s'ouvre dans Chrome.</li>
+        <li>Désinstalle ensuite cette ancienne appli : sur ordinateur, clic droit sur son icône (ou menu <b>⋮</b> de la fenêtre) ; sur téléphone, appui long sur son icône ; puis <b>« Désinstaller »</b>.</li>
       </ol>
       <p style="margin:1.2vh 0 0">Tes phrases de la gym des mots et tes listes d'élèves sont conservées.</p>
     </div>
   </main>
 <script>
+  const NOUVELLE = 'https://mickaelguitton.github.io/tableau-magique/';
+  /* Android : un lien ouvert depuis une appli installée s'ouvre dans une fenêtre intégrée (bandeau noir)
+     où l'installation est impossible. On demande donc d'ouvrir l'adresse dans Chrome lui-même. */
+  if (/Android/i.test(navigator.userAgent)) {
+    document.getElementById('ouvrir').href =
+      'intent://mickaelguitton.github.io/tableau-magique/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='
+      + encodeURIComponent(NOUVELLE) + ';end';
+  }
+  /* Copier l'adresse */
+  document.getElementById('copier').addEventListener('click', async e => {
+    try { await navigator.clipboard.writeText(NOUVELLE); e.target.textContent = 'Adresse copiée !'; }
+    catch (err) { e.target.textContent = 'Sélectionne l’adresse'; }
+    setTimeout(() => { e.target.textContent = 'Copier l’adresse'; }, 2500);
+  });
+
   /* Remplace l'ancienne version sur les ordinateurs où l'appli était installée (voir sw.js) */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
