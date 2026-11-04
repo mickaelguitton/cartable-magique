@@ -144,7 +144,7 @@ h1,h2,p{margin:0}
 .topbar .grp.r{justify-content:flex-end}
 .ttl{text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5vh}
 .ttl h1{font-size:var(--tfs);letter-spacing:1px;line-height:1.05}
-.ttl h1 span{display:inline-block;text-shadow:0 4px 0 var(--navy)}
+.ttl h1 span{display:inline-block;text-shadow:0 min(4px,.06em) 0 var(--navy)}   /* ombre proportionnelle : lisible aussi en petit */
 #tourInfo{font-weight:800;background:var(--sun);border:3px solid var(--navy);border-radius:16px;box-shadow:0 3px 0 var(--navy)}
 .topbar .btn.small,#tourInfo{height:2.5rem;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;padding:0 1em;line-height:1;white-space:nowrap}
 #tourInfo small{font-weight:700;color:var(--navy);opacity:.75;margin-left:.6em;font-size:.72em}
@@ -214,6 +214,9 @@ h1,h2,p{margin:0}
 .signature{font-size:.7rem;font-weight:600;opacity:.45;text-align:right}
 .signature a{color:inherit;text-decoration:none}
 .signature a:hover{text-decoration:underline}
+
+/* Picto du son (le même dans la gym des mots, la machine à conjuguer et à qui le tour) : barré quand le son est coupé */
+.ico-son{width:1.35em;height:1.35em;display:block}
 </style>
 <!-- Portail « Le cartable magique » : version, bouton Accueil, hors ligne et mise à jour (voir ../portail.js) -->
 <link rel="manifest" href="../manifest.webmanifest">
@@ -339,7 +342,7 @@ h1,h2,p{margin:0}
     <div class="grp r">
       <div id="tourInfo"></div>
       <button class="btn small" id="bNext" type="button">Autre phrase</button>
-      <button class="btn small" id="bSnd" type="button">Son</button>
+      <button class="btn small" id="bSnd" type="button" aria-label="Son activé"></button>
     </div>
   </div>
   <div id="sentence" aria-live="polite"></div>
@@ -1073,7 +1076,9 @@ function renderTop(){
     : `Tour ${S.tour}`;
   $('#bNext').classList.toggle('hidden', S.source !== 'rand' && S.source !== 'srand');
   $('#bNext').textContent = S.kind === 'words' ? 'Autres mots' : 'Autre phrase';
-  $('#bSnd').textContent = S.sound ? 'Son : oui' : 'Son : non';
+  $('#bSnd').innerHTML = ICONE_SON(S.sound);
+  $('#bSnd').title = S.sound ? 'Son activé : cliquer pour couper le son' : 'Son coupé : cliquer pour remettre le son';
+  $('#bSnd').setAttribute('aria-label', S.sound ? 'Son activé' : 'Son coupé');
 }
 function renderControls(){
   const b = $('#mainBtn'), n = S.tokens.length;
@@ -1282,6 +1287,10 @@ function updSummary(){
 document.addEventListener('change', updSummary);
 document.addEventListener('click', () => setTimeout(updSummary, 0));
 setTimeout(updSummary, 0);
+
+/* Picto du son : haut-parleur, barré quand le son est coupé (même picto dans les trois outils) */
+const ICONE_SON = on => on ? '<svg class="ico-son" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.6L12 5.4v13.2l-4.9-4.1H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+                          : '<svg class="ico-son" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.6L12 5.4v13.2l-4.9-4.1H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".45"/><path d="M3 3.5l18 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
 
 /* titre multicolore (le même pour le menu et l'écran élèves) */
 (function colorTitle(){

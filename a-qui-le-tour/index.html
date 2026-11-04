@@ -109,8 +109,9 @@ textarea::placeholder { color:rgba(43,33,80,.4); font-weight:400; }
 .top-btn:hover { filter:brightness(1.1); }
 .top-btn--fullscreen { background:linear-gradient(135deg,var(--green),var(--blue)); }
 .top-btn--sound      { background:linear-gradient(135deg,var(--pink),var(--orange)); }
+.toolbar-right { position:fixed; top:14px; right:14px; z-index:150; display:flex; gap:8px; align-items:stretch; }
+.top-btn--sound { display:flex; align-items:center; justify-content:center; padding:4px 10px; }
 .top-btn--options {
-  position:fixed; top:14px; right:14px; z-index:150;
   display:flex; align-items:center; gap:6px;
   background:linear-gradient(135deg,var(--purple),var(--blue));
 }
@@ -378,6 +379,9 @@ body.fs-active .history-panel { max-width:760px; padding:10px 16px; }
   h1, body.fs-active h1{font-size:1.6rem;margin-top:34px;margin-bottom:2px}   /* sous la barre de boutons */
   .winner{min-height:44px;padding:4px 28px;font-size:1.5rem;border-width:3px}
 }
+
+/* Picto du son (le même dans la gym des mots, la machine à conjuguer et à qui le tour) : barré quand le son est coupé */
+.ico-son{width:1.35em;height:1.35em;display:block}
 </style>
 
 <!-- Polices intégrées dans le fichier (licence SIL Open Font License) : aucune connexion Internet nécessaire.
@@ -402,15 +406,17 @@ body.fs-active .history-panel { max-width:760px; padding:10px 16px; }
 <!-- Canevas des animations de victoire -->
 <div class="celebration" id="celebration"></div>
 
-<!-- Barre du haut, à gauche : plein écran et son -->
+<!-- Barre du haut, à gauche : accueil et plein écran -->
 <div class="toolbar-left">
   <button class="top-btn top-btn--fullscreen portail-accueil" onclick="location.href='../'">🏠 Accueil</button>
   <button class="top-btn top-btn--fullscreen" id="fsBtn">🖥️ Plein écran</button>
-  <button class="top-btn top-btn--sound" id="soundBtn">🔊 Son activé</button>
 </div>
 
-<!-- Barre du haut, à droite : options -->
-<button class="top-btn top-btn--options" id="optBtn">⚙️ Options <span class="opt-badge" id="optBadge"></span></button>
+<!-- Barre du haut, à droite : son (picto) et options -->
+<div class="toolbar-right">
+  <button class="top-btn top-btn--sound" id="soundBtn" aria-label="Son activé"></button>
+  <button class="top-btn top-btn--options" id="optBtn">⚙️ Options <span class="opt-badge" id="optBadge"></span></button>
+</div>
 <aside class="options-panel" id="optPanel">
   <div class="opt-head">
     <h2>⚙️ Options</h2>
@@ -1388,10 +1394,14 @@ function playWin() {
 }
 
 // --- Réglages sonores (boutons et menus) ------------------------------------
+/* Picto du son : haut-parleur, barré quand le son est coupé (même picto dans les trois outils) */
+const ICONE_SON = on => on ? '<svg class="ico-son" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.6L12 5.4v13.2l-4.9-4.1H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+                          : '<svg class="ico-son" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.6L12 5.4v13.2l-4.9-4.1H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".45"/><path d="M3 3.5l18 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
 function updateSoundButton() {
   const btn = $('soundBtn');
-  btn.textContent = soundOn ? '🔊 Son activé' : '🔇 Son coupé';
-  btn.title = soundOn ? 'Cliquer pour couper le son' : 'Cliquer pour remettre le son';
+  btn.innerHTML = ICONE_SON(soundOn);
+  btn.title = soundOn ? 'Son activé : cliquer pour couper le son' : 'Son coupé : cliquer pour remettre le son';
+  btn.setAttribute('aria-label', soundOn ? 'Son activé' : 'Son coupé');
 }
 
 function toggleSound() {
@@ -2035,10 +2045,8 @@ function bindEvents() {
 
 // Retrouve les réglages sonores enregistrés lors de la dernière utilisation
 async function loadPreferences() {
-  if (await storage.get(STORAGE_KEYS.sound) === '0') {
-    soundOn = false;
-    updateSoundButton();
-  }
+  if (await storage.get(STORAGE_KEYS.sound) === '0') soundOn = false;
+  updateSoundButton();                                       // affiche le picto du son dès l'ouverture
 
   const win = await storage.get(STORAGE_KEYS.win);
   if (win === 'hasard' || win === 'aucun' || Object.keys(WIN_SOUNDS).includes(win)) {

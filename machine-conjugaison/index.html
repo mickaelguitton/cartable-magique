@@ -344,6 +344,10 @@ body.fs .topbar:hover{opacity:1}
   .btn-icon{padding:4px 9px;font-size:.78rem}
   .topbar{top:8px;gap:6px}
 }
+
+/* Picto du son (le même dans la gym des mots, la machine à conjuguer et à qui le tour) : barré quand le son est coupé */
+.ico-son{width:1.35em;height:1.35em;display:block}
+#snd{display:inline-flex;align-items:center;justify-content:center;padding:5px 11px}
 </style>
 <!-- Portail « Le cartable magique » : version, bouton Accueil, hors ligne et mise à jour (voir ../portail.js) -->
 <link rel="manifest" href="../manifest.webmanifest">
@@ -359,7 +363,7 @@ body.fs .topbar:hover{opacity:1}
 
 <div class="topbar left">
   <button class="btn-icon portail-accueil" onclick="location.href='../'">🏠 Accueil</button>
-  <button class="btn-icon" id="snd" title="Activer / couper le son">🔊 Son</button>
+  <button class="btn-icon" id="snd" title="Activer / couper le son" aria-label="Son activé"></button>
   <button class="btn-icon" id="fs" title="Plein écran">🖥️ Plein écran</button>
 </div>
 <div class="topbar right">
@@ -1025,9 +1029,14 @@ document.addEventListener('fullscreenchange', ()=>{
   document.body.classList.toggle('fs', !!document.fullscreenElement);
 });
 
+/* Picto du son : haut-parleur, barré quand le son est coupé (même picto dans les trois outils) */
+const ICONE_SON = on => on ? '<svg class="ico-son" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.6L12 5.4v13.2l-4.9-4.1H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+                          : '<svg class="ico-son" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.5h3.6L12 5.4v13.2l-4.9-4.1H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" opacity=".45"/><path d="M3 3.5l18 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
 const sndBtn = document.getElementById('snd');
 function refreshSnd(){
-  sndBtn.textContent = S.sound ? '🔊 Son' : '🔇 Son coupé';
+  sndBtn.innerHTML = ICONE_SON(S.sound);
+  sndBtn.title = S.sound ? 'Son activé : cliquer pour couper le son' : 'Son coupé : cliquer pour remettre le son';
+  sndBtn.setAttribute('aria-label', S.sound ? 'Son activé' : 'Son coupé');
   sndBtn.classList.toggle('off', !S.sound);
 }
 sndBtn.onclick = ()=>{ S.sound = !S.sound; save(); refreshSnd(); if(S.sound) initAudio().then(()=>sfx.blip()); };
